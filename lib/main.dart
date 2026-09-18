@@ -1,8 +1,10 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:go_router/go_router.dart';
 import 'package:local_storage/routes.dart';
@@ -34,64 +36,76 @@ class MyApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      // DeviceOrientation.landscapeLeft,
+      // DeviceOrientation.landscapeRight,
+      DeviceOrientation.portraitDown,
+    ]);
     // return MaterialApp(
-    return MaterialApp.router(
-      routerConfig: GoRouter(
-        initialLocation: true ? '/' : '/onboarding',
-        routes: <RouteBase>[
-          GoRoute(
-            path: '/',
-            name: 'home',
-            redirect: (_, _) async {},
-            routes: [
-              GoRoute(
-                path: '/secondRoute/:name',
-                name: 'second',
-                redirect: (context, state) async {},
-                builder: (context, state) {
-                  // final data = state.extra as Map<String, dynamic>;
-                  // final data = state.extra as String;
-                  print('this is the Authoruty${state.fullPath}');
-                  final data = state.pathParameters['name'];
-                  // final data = state.pathParameters['name'];
-                  // final data = state.uri.queryParameters['name'];
-                  // String name = data;
-                  return SecondScreen(data: data ?? 'No Data Received');
-                },
-                routes: [
-                  GoRoute(
-                    path: '/thirdRoute',
-                    name: 'third',
-                    builder: (context, state) => ThirdScreen(),
-                  ),
-                ],
-              ),
-            ],
-            builder: (context, GoRouterState state) {
-              return MyHomePage(title: 'Fluttrr Demo Home Page');
-            },
-          ),
-          GoRoute(
-            path: '/onboarding',
-            builder: (context, state) => Container(
-              width: double.infinity,
-              height: double.infinity,
-              color: Colors.amber,
-              child: Text('This is onboarding'),
-            ),
-          ),
-        ],
+    return ScreenUtilInit(
+      designSize: const Size(360, 690),
+      minTextAdapt: true,
+      splitScreenMode: false,
+      builder: (BuildContext context, _) => MaterialApp.router(
+        routerConfig: router(),
+        // routerConfig: GoRouter(
+        //   initialLocation: true ? '/' : '/onboarding',
+        //   routes: <RouteBase>[
+        //     GoRoute(
+        //       path: '/',
+        //       name: 'home',
+        //       redirect: (_, _) async {},
+        //       routes: [
+        //         GoRoute(
+        //           path: '/secondRoute/:name',
+        //           name: 'second',
+        //           redirect: (context, state) async {},
+        //           builder: (context, state) {
+        //             // final data = state.extra as Map<String, dynamic>;
+        //             // final data = state.extra as String;
+        //             print('this is the Authoruty${state.fullPath}');
+        //             final data = state.pathParameters['name'];
+        //             // final data = state.pathParameters['name'];
+        //             // final data = state.uri.queryParameters['name'];
+        //             // String name = data;
+        //             return SecondScreen(data: data ?? 'No Data Received');
+        //           },
+        //           routes: [
+        //             GoRoute(
+        //               path: '/thirdRoute',
+        //               name: 'third',
+        //               builder: (context, state) => ThirdScreen(),
+        //             ),
+        //           ],
+        //         ),
+        //       ],
+        //       builder: (context, GoRouterState state) {
+        //         return MyHomePage(title: 'Fluttrr Demo Home Page');
+        //       },
+        //     ),
+        //     GoRoute(
+        //       path: '/onboarding',
+        //       builder: (context, state) => Container(
+        //         width: double.infinity,
+        //         height: double.infinity,
+        //         color: Colors.amber,
+        //         child: Text('This is onboarding'),
+        //       ),
+        //     ),
+        //   ],
+        // ),
+        // routerConfig: router(),
+        // routes: {
+        //   '/': (context) => const MyHomePage(title: 'Flutter Demo Home Page'),
+        //   '/secondRoute': (context) => const SecondScreen(),
+        // },
+        title: 'Flutter Demo',
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        ),
+        // home: const MyHomePage(title: 'Flutter Demo Home Page'),
       ),
-      // routerConfig: router(),
-      // routes: {
-      //   '/': (context) => const MyHomePage(title: 'Flutter Demo Home Page'),
-      //   '/secondRoute': (context) => const SecondScreen(),
-      // },
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-      ),
-      // home: const MyHomePage(title: 'Flutter Demo Home Page'),
     );
   }
 }
@@ -114,6 +128,9 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
   @override
   void initState() {
     super.initState();
+    Future.microtask(() {
+      ref.read(productProvider.notifier).getProducts(); // 5 seconds
+    });
     final storage = FlutterSecureStorage(
       aOptions: AndroidOptions(
         enforceBiometrics: true,
@@ -182,7 +199,7 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
               controller: _controller,
               onChanged: (value) => setState(() {}),
             ),
-            Text(stdFetchedData?.name ?? 'No data fetched'),
+            Text(stdFetchedData?.name ?? 'No data fetched', maxLines: 10),
             // Text(saved),
             SizedBox(height: 50),
             Text(counter.toString()),
@@ -199,8 +216,8 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
               onPressed: () {
                 _controller.text.isEmpty
                     ? null
-                    : context.push(
-                        '/secondRoute/${_controller.text}',
+                    : context.pushNamed(
+                        'secondScreen',
                         // '/secondRoute?name=${_controller.text}',
 
                         // extra: _controller.text,
@@ -228,6 +245,31 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
               },
               child: Text(''),
             ),
+
+            SizedBox(height: 20),
+            Container(
+              width: 40.w,
+              height: 40.w,
+              decoration: BoxDecoration(
+                color: Colors.amber,
+                // shape: BoxShape.circle,
+                borderRadius: BorderRadius.circular(40.r),
+              ),
+            ),
+            SizedBox(height: 20),
+            if (ref.watch(productProvider).isEmpty)
+              Text('No porduct found')
+            else
+              ...ref
+                  .watch(productProvider) // Hameed Olayi
+                  .map(
+                    (p) => Text(
+                      p.name,
+                      style: TextStyle(fontSize: 20.sp),
+                      maxLines: 10,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
           ],
         ),
       ),
