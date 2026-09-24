@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,10 +9,13 @@ import 'package:flutter_riverpod/legacy.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:go_router/go_router.dart';
+import 'package:http/http.dart' as http;
+import 'package:is_first_run/is_first_run.dart';
 import 'package:local_storage/routes.dart';
 import 'package:local_storage/second_screen.dart';
 import 'package:local_storage/third_screen.dart';
 import 'package:local_storage/variables.dart';
+import 'package:logger/web.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class StudentCodes {
@@ -22,16 +27,25 @@ class StudentCodes {
   Map<String, dynamic> toJson() {
     return {'code': code, 'name': name};
   }
+
+  factory StudentCodes.fromJson(Map<String, dynamic> data) {
+    return StudentCodes(
+      code: data['id'].toString(),
+      name: data['title'] ?? 'Sample Title',
+    );
+  }
 }
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // await
-  runApp(ProviderScope(child: const MyApp()));
+  final bool ifr = kIsWeb ? false : await IsFirstRun.isFirstRun();
+
+  runApp(ProviderScope(child: MyApp(isFirstRun: ifr)));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final bool isFirstRun;
+  const MyApp({super.key, required this.isFirstRun});
 
   // This widget is the root of your application.
   @override
@@ -48,7 +62,7 @@ class MyApp extends StatelessWidget {
       minTextAdapt: true,
       splitScreenMode: false,
       builder: (BuildContext context, _) => MaterialApp.router(
-        routerConfig: router(),
+        routerConfig: router(isFirstRun),
         // routerConfig: GoRouter(
         //   initialLocation: true ? '/' : '/onboarding',
         //   routes: <RouteBase>[
@@ -276,6 +290,43 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
       floatingActionButton: Column(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
+          FloatingActionButton(
+            onPressed: () async {
+              var client = http.Client();
+              try {
+                var response = await client.get(
+                  Uri.https('dummyjson.com', '/products'),
+
+                  // Uri.https('https://dummyjson.com/', '/products'),
+                );
+                Logger().i(jsonDecode(response.body));
+                Logger().i(jsonDecode((response.body)).runtimeType);
+                final Map<String, dynamic> data = jsonDecode(response.body);
+
+                if (data['products'] is List<dynamic>) {
+                  Logger().i('this is a List');
+                  final List<StudentCodes> products =
+                      (data['products'] as List<dynamic>)
+                          .map((e) => StudentCodes.fromJson(e))
+                          .toList();
+
+                  Logger().i('$products');
+                } else {
+                  Logger().e('this is not a list');
+                }
+
+                // // print(response.body);
+                // var decodedResponse =
+                //     jsonDecode(utf8.decode(response.bodyBytes)) as Map;
+                // var uri = Uri.parse(decodedResponse['uri'] as String);
+              } catch (e) {
+                Logger().e(e);
+                Logger().e(e.toString());
+              }
+            },
+            tooltip: 'Fetch',
+            child: const Icon(Icons.phone),
+          ),
           FloatingActionButton(
             onPressed: () async {
               ref.read(counterProvider.notifier).state++;
