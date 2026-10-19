@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -11,6 +12,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'package:is_first_run/is_first_run.dart';
+import 'package:local_storage/main.viewmodel.dart';
 import 'package:local_storage/routes.dart';
 import 'package:local_storage/second_screen.dart';
 import 'package:local_storage/third_screen.dart';
@@ -292,28 +294,30 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
         children: [
           FloatingActionButton(
             onPressed: () async {
-              var client = http.Client();
+              // var client = http.Client();
               try {
-                var response = await client.get(
-                  Uri.https('dummyjson.com', '/products'),
+                final mainVM = MainViewModel();
+                await mainVM.fetchProducts();
+                // var response = await client.get(
+                //   Uri.https('dummyjson.com', '/products'),
 
-                  // Uri.https('https://dummyjson.com/', '/products'),
-                );
-                Logger().i(jsonDecode(response.body));
-                Logger().i(jsonDecode((response.body)).runtimeType);
-                final Map<String, dynamic> data = jsonDecode(response.body);
+                //   // Uri.https('https://dummyjson.com/', '/products'),
+                // );
+                // Logger().i(jsonDecode(response.body));
+                // Logger().i(jsonDecode((response.body)).runtimeType);
+                // final Map<String, dynamic> data = jsonDecode(response.body);
 
-                if (data['products'] is List<dynamic>) {
-                  Logger().i('this is a List');
-                  final List<StudentCodes> products =
-                      (data['products'] as List<dynamic>)
-                          .map((e) => StudentCodes.fromJson(e))
-                          .toList();
+                // if (data['products'] is List<dynamic>) {
+                //   Logger().i('this is a List');
+                //   final List<StudentCodes> products =
+                //       (data['products'] as List<dynamic>)
+                //           .map((e) => StudentCodes.fromJson(e))
+                //           .toList();
 
-                  Logger().i('$products');
-                } else {
-                  Logger().e('this is not a list');
-                }
+                // Logger().i('$products');
+                // } else {
+                //   Logger().e('this is not a list');
+                // }
 
                 // // print(response.body);
                 // var decodedResponse =
