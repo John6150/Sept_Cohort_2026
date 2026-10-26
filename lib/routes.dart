@@ -1,6 +1,7 @@
 // GoRouter configuration
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:local_storage/fourth_screen,.dart';
 import 'package:local_storage/main.dart';
 import 'package:local_storage/onboarding.dart';
 import 'package:local_storage/second_screen.dart';
@@ -122,6 +123,12 @@ GoRouter router(bool ifr) {
         path: '/onboarding',
         builder: (context, state) {
           return Onboarding();
+        },
+      ),
+      GoRoute(
+        path: '/fourth',
+        builder: (context, state) {
+          return SQFLiteClass();
         },
       ),
     ],

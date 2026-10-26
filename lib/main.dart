@@ -12,10 +12,12 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'package:is_first_run/is_first_run.dart';
+import 'package:local_storage/SQFlite_class.dart';
 import 'package:local_storage/main.viewmodel.dart';
 import 'package:local_storage/routes.dart';
 import 'package:local_storage/second_screen.dart';
 import 'package:local_storage/third_screen.dart';
+import 'package:local_storage/user.model.dart';
 import 'package:local_storage/variables.dart';
 import 'package:logger/web.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -135,6 +137,8 @@ class MyHomePage extends ConsumerStatefulWidget {
 }
 
 class _MyHomePageState extends ConsumerState<MyHomePage> {
+  List<UserModel> users = [];
+
   int _counter = 0;
   String saved = '';
   StudentCodes? stdFetchedData;
@@ -147,6 +151,18 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
     Future.microtask(() {
       ref.read(productProvider.notifier).getProducts(); // 5 seconds
     });
+
+    final dB = SqfLiteDB();
+
+    Future.microtask(() async {
+      final list = await dB.getRecords();
+      setState(() {
+        if (list != null) {
+          users = list.map((user) => UserModel.fromJson(user)).toList();
+        }
+      });
+    });
+
     final storage = FlutterSecureStorage(
       aOptions: AndroidOptions(
         enforceBiometrics: true,
@@ -210,6 +226,7 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: <Widget>[
             TextField(
               controller: _controller,
@@ -219,6 +236,56 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
             // Text(saved),
             SizedBox(height: 50),
             Text(counter.toString()),
+
+            SizedBox(height: 50),
+            Table(
+              border: TableBorder(
+                top: BorderSide(width: 1),
+                bottom: BorderSide(width: 1),
+                right: BorderSide(width: 1),
+                left: BorderSide(width: 1),
+                verticalInside: BorderSide(width: 1),
+                horizontalInside: BorderSide(width: 1),
+              ),
+              children: [
+                TableRow(
+                  children: [
+                    Center(child: Text('Name')),
+                    Center(child: Text('Age')),
+                    Center(child: Text('Gender')),
+                    Center(child: Text('Action')),
+                  ],
+                ),
+                ...users.map(
+                  (user) => TableRow(
+                    children: [
+                      Center(child: Text(user.name)),
+                      Center(child: Text(user.age.toString())),
+                      Center(child: Text(user.gender)),
+                      Center(
+                        child: IconButton(
+                          onPressed: () async {
+                            final db = SqfLiteDB();
+                            await db.deleteRecord(user.name);
+                            final remainingList = await db.getRecords();
+                            setState(() {
+                              if (remainingList != null) {
+                                users = [
+                                  ...remainingList.map(
+                                    (u) => UserModel.fromJson(u),
+                                  ),
+                                ];
+                              }
+                            });
+                          },
+                          icon: Icon(Icons.delete),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
             // Text(saved),
             SizedBox(height: 50),
             TextButton(
@@ -248,6 +315,26 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
               },
               child: Text(
                 'Go to Second Screen',
+                style: TextStyle(
+                  color: _controller.text.isEmpty
+                      ? Colors.purple
+                      : Colors.white,
+                ),
+              ),
+            ),
+            TextButton(
+              style: ButtonStyle(
+                backgroundColor: WidgetStatePropertyAll(
+                  _controller.text.isEmpty
+                      ? Colors.purple.withValues(alpha: 0.05)
+                      : Colors.purple,
+                ),
+              ),
+              onPressed: () {
+                context.push('/fourth');
+              },
+              child: Text(
+                'Go to Fourth Screen',
                 style: TextStyle(
                   color: _controller.text.isEmpty
                       ? Colors.purple
