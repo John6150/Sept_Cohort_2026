@@ -5,12 +5,15 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
+import 'package:image_cropper/image_cropper.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:is_first_run/is_first_run.dart';
 import 'package:local_storage/SQFlite_class.dart';
 import 'package:local_storage/main.viewmodel.dart';
@@ -20,6 +23,8 @@ import 'package:local_storage/third_screen.dart';
 import 'package:local_storage/user.model.dart';
 import 'package:local_storage/variables.dart';
 import 'package:logger/web.dart';
+import 'package:path/path.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class StudentCodes {
@@ -138,6 +143,7 @@ class MyHomePage extends ConsumerStatefulWidget {
 
 class _MyHomePageState extends ConsumerState<MyHomePage> {
   List<UserModel> users = [];
+  File? image;
 
   int _counter = 0;
   String saved = '';
@@ -342,6 +348,86 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
                 ),
               ),
             ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                TextButton(
+                  style: ButtonStyle(
+                    backgroundColor: WidgetStatePropertyAll(
+                      _controller.text.isEmpty
+                          ? Colors.purple.withValues(alpha: 0.05)
+                          : Colors.purple,
+                    ),
+                  ),
+                  onPressed: () async {
+                    final picker = ImagePicker();
+                    XFile? res = await picker.pickImage(
+                      source: ImageSource.gallery,
+                    );
+                    if (res != null) {
+                      CroppedFile? croppedFile = await ImageCropper().cropImage(
+                        sourcePath: res.path,
+                        uiSettings: [
+                          AndroidUiSettings(
+                            freeStyleCropEnabled: true,
+                            toolbarTitle: 'Sept Cohort',
+                            toolbarColor: Colors.brown,
+                            toolbarWidgetColor: Colors.white,
+                            aspectRatioPresets: [
+                              CropAspectRatioPreset.original,
+                              CropAspectRatioPreset.square,
+                            ],
+                          ),
+                          IOSUiSettings(
+                            title: 'Cropper',
+                            aspectRatioPresets: [
+                              CropAspectRatioPreset.original,
+                              CropAspectRatioPreset.square,
+                            ],
+                          ),
+                          WebUiSettings(context: context),
+                        ],
+                      );
+                      if (croppedFile != null) {
+                        final path = Path();
+                        final compressedFile = await testCompressAndGetFile(
+                          File(croppedFile.path),
+                        );
+                        if (compressedFile != null) {
+                          setState(() {
+                            image = File(compressedFile.path);
+
+                            // Logger().e();
+                          });
+                          Uint8List size = await croppedFile.readAsBytes();
+                          Logger().i(compressedFile.path.length);
+                        }
+                      }
+                    }
+                    Logger().i(res);
+                  },
+                  child: Text(
+                    'Tap to select Image',
+                    style: TextStyle(
+                      color: _controller.text.isEmpty
+                          ? Colors.purple
+                          : Colors.white,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  onPressed: () {
+                    setState(() {
+                      image = null;
+                    });
+                  },
+                  icon: Icon(Icons.delete),
+                ),
+              ],
+            ),
+            image != null
+                ? Container(width: 100, height: 100, child: Image.file(image!))
+                : SizedBox.shrink(),
             TextButton(
               onPressed: () {
                 context.canPop() ? context.pop() : null;
@@ -514,4 +600,27 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
       ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
+}
+
+Future<File?> testCompressAndGetFile(File file) async {
+  final tempDir = await getTemporaryDirectory();
+  final path =
+      '${tempDir.path}/compressed_${DateTime.now().millisecondsSinceEpoch}.png';
+  final result = await FlutterImageCompress.compressAndGetFile(
+    file.absolute.path,
+    path,
+    quality: 50,
+    format: CompressFormat.png,
+    rotate: 0,
+  );
+
+  print(file.lengthSync());
+  if (result != null) {
+    print(await result.length());
+    return File(result.path);
+  }
+  if (result != null) {
+    return File(result.path);
+  }
+  return null;
 }
